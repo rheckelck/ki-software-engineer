@@ -27,7 +27,19 @@ async function openCatalog(page: Page) {
 async function navigateToDetails(page: Page) {
   const response = page.waitForResponse(`${apiUrl}/${book.id}`);
   await navigateToBook(page, book.id);
-  await page.clock.runFor(32);
+  // Lazy route imports finish in real time; keep advancing the paused Angular scheduler
+  // until the detail request starts, without running through the catalog debounce.
+  let received = false;
+  void response.then(() => (received = true));
+  await expect
+    .poll(
+      async () => {
+        await page.clock.runFor(1);
+        return received;
+      },
+      { intervals: [100] }
+    )
+    .toBe(true);
   await renderResponse(page, response);
   await expect(page.getByRole('heading', { name: book.title, exact: true })).toBeVisible();
 }

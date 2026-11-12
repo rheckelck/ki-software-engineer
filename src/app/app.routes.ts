@@ -1,11 +1,12 @@
 import { Routes } from '@angular/router';
-import { BookListComponent } from './books/book-list.component';
-import { BookDetailComponent } from './books/book-detail.component';
-import { SettingsComponent } from './settings/settings.component';
 
 export const routes: Routes = [
-  { path: '', component: BookListComponent },
-  { path: 'books/:id', component: BookDetailComponent },
-  { path: 'settings', component: SettingsComponent },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./books/book-list.component').then(m => m.BookListComponent)
+  },
+  { path: 'books/:id', loadComponent: () => import('./books/book-detail.component').then(m => m.BookDetailComponent) },
+  { path: 'settings', loadComponent: () => import('./settings/settings.component').then(m => m.SettingsComponent) },
   { path: '**', redirectTo: '' }
 ];

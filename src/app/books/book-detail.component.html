@@ -5,7 +5,7 @@
     >Back to books</a
   >
 
-  @if (state$ | async; as state) { 
+  @if (state$ | async; as state) {
     @switch (state.status) {
       @case ('loading') {
         <p role="status" class="py-20 text-center text-muted animate-pulse">Loading book...</p>

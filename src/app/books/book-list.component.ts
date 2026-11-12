@@ -1,6 +1,7 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, Input } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, input, signal, DestroyRef } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, map, Observable, of, startWith, switchMap, timer } from 'rxjs';
 import { Book } from './book';
 import { BookApiClient } from './book-api-client.service';
@@ -15,13 +16,13 @@ type CatalogState =
   | { status: 'success'; books: Book[]; page: number; pages: number[] };
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-book-list',
-  standalone: true,
-  imports: [AsyncPipe, FormsModule, BookItemComponent, BookPaginationComponent, RequestErrorComponent],
+  imports: [AsyncPipe, ReactiveFormsModule, BookItemComponent, BookPaginationComponent, RequestErrorComponent],
   templateUrl: './book-list.component.html'
 })
 export class BookListComponent {
-  @Input() pageSize = 10;
+  readonly pageSize = input(10);
 
   private readonly bookApiClient = inject(BookApiClient);
   private readonly catalogSelection = inject(BookCatalogSelection);
@@ -35,13 +36,13 @@ export class BookListComponent {
     switchMap(({ term, page, debounce }) =>
       (debounce ? timer(300) : of(0)).pipe(
         switchMap(() =>
-          this.bookApiClient.getBooksPage(this.pageSize, term, page).pipe(
+          this.bookApiClient.getBooksPage(this.pageSize(), term, page).pipe(
             map(
               ({ books, total }): CatalogState => ({
                 status: 'success',
                 books,
                 page,
-                pages: Array.from({ length: Math.ceil(total / this.pageSize) }, (_, index) => index + 1)
+                pages: Array.from({ length: Math.ceil(total / this.pageSize()) }, (_, index) => index + 1)
               })
             ),
             catchError(() => of<CatalogState>({ status: 'error' }))
@@ -52,12 +53,17 @@ export class BookListComponent {
     )
   );
 
-  get searchTerm(): string {
-    return this.requests.value.term;
+  readonly searchTerm = signal(this.catalogSelection.selection.term);
+  readonly searchControl = new FormControl(this.searchTerm(), { nonNullable: true });
+
+  constructor() {
+    this.searchControl.valueChanges
+      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe(term => this.onSearchChange(term));
   }
 
   onSearchChange(term: string): void {
-    if (term !== this.searchTerm) {
+    if (term !== this.searchTerm()) {
       this.request({ term, page: 1, debounce: term.length > 0 });
     }
   }
@@ -72,10 +78,12 @@ export class BookListComponent {
 
   goToPage(page: number, pageCount: number): void {
     if (!Number.isInteger(page) || page < 1 || page > pageCount || page === this.requests.value.page) return;
-    this.request({ term: this.searchTerm, page, debounce: false });
+    this.request({ term: this.searchTerm(), page, debounce: false });
   }
 
   private request(intent: CatalogIntent): void {
+    this.searchTerm.set(intent.term);
+    this.searchControl.setValue(intent.term, { emitEvent: false });
     this.catalogSelection.selection = { term: intent.term, page: intent.page };
     this.requests.next(intent);
   }

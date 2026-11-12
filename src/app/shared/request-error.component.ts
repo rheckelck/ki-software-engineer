@@ -1,13 +1,13 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 /** Presentation only: the owning feature decides the heading, message, and retry behavior. */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-request-error',
-  standalone: true,
   host: { class: 'block rounded-lg bg-subtle p-8', role: 'alert' },
   template: `
     <ng-content />
-    @if (retryable) {
+    @if (retryable()) {
       <button
         type="button"
         (click)="retry.emit()"
@@ -19,6 +19,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   `
 })
 export class RequestErrorComponent {
-  @Input() retryable = false;
-  @Output() readonly retry = new EventEmitter<void>();
+  readonly retryable = input(false);
+  readonly retry = output<void>();
 }

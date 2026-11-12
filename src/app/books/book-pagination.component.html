@@ -1,19 +1,19 @@
-@if (pages.length > 1) {
+@if (pages().length > 1) {
   <nav aria-label="Book pages" class="mt-8 flex flex-wrap items-center justify-center gap-2">
     <button
       type="button"
-      (click)="pageChange.emit(currentPage - 1)"
-      [disabled]="currentPage === 1"
+      (click)="pageChange.emit(currentPage() - 1)"
+      [disabled]="currentPage() === 1"
       class="rounded border border-line bg-surface px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
     >
       Previous
     </button>
-    @for (page of pages; track page) {
+    @for (page of pages(); track page) {
       <button
         type="button"
         (click)="pageChange.emit(page)"
         [attr.aria-label]="'Page ' + page"
-        [attr.aria-current]="page === currentPage ? 'page' : null"
+        [attr.aria-current]="page === currentPage() ? 'page' : null"
         class="rounded border border-line bg-surface px-3 py-2 text-foreground aria-[current=page]:border-accent aria-[current=page]:font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {{ page }}
@@ -21,8 +21,8 @@
     }
     <button
       type="button"
-      (click)="pageChange.emit(currentPage + 1)"
-      [disabled]="currentPage === pages.length"
+      (click)="pageChange.emit(currentPage() + 1)"
+      [disabled]="currentPage() === pages().length"
       class="rounded border border-line bg-surface px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
     >
       Next

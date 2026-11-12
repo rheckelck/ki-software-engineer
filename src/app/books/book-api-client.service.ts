@@ -13,7 +13,7 @@ export interface BookPage {
 export class BookApiClient {
   private readonly apiUrl = `${inject(API_BASE_URL).replace(/\/$/, '')}/books`;
 
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getBook(id: string): Observable<Book> {
     return this.http.get<Book>(`${this.apiUrl}/${encodeURIComponent(id)}`);

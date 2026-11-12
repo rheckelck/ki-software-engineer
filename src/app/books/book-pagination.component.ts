@@ -1,13 +1,13 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-book-pagination',
-  standalone: true,
   host: { class: 'block' },
   templateUrl: './book-pagination.component.html'
 })
 export class BookPaginationComponent {
-  @Input({ required: true }) currentPage!: number;
-  @Input({ required: true }) pages!: readonly number[];
-  @Output() readonly pageChange = new EventEmitter<number>();
+  readonly currentPage = input.required<number>();
+  readonly pages = input.required<readonly number[]>();
+  readonly pageChange = output<number>();
 }

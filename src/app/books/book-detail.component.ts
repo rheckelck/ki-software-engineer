@@ -1,6 +1,6 @@
 import { AsyncPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, map, Observable, of, startWith, Subject, switchMap } from 'rxjs';
 import { Book } from './book';
@@ -11,8 +11,8 @@ import { RequestErrorComponent } from '../shared/request-error.component';
 type BookDetailState = { status: 'loading' | 'not-found' | 'error' } | { status: 'success'; book: Book };
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-book-detail',
-  standalone: true,
   imports: [AsyncPipe, RouterLink, BookCoverComponent, RequestErrorComponent],
   templateUrl: './book-detail.component.html'
 })

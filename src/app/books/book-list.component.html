@@ -5,13 +5,12 @@
     <div class="flex items-center border-b-2 border-line py-2">
       <input
         type="search"
-        [ngModel]="searchTerm"
-        (ngModelChange)="onSearchChange($event)"
+        [formControl]="searchControl"
         aria-label="Search for books"
         placeholder="Search for books..."
         class="appearance-none bg-transparent border-none w-full text-foreground mr-3 py-1 px-2 leading-tight focus-visible:outline-2 focus-visible:outline-accent"
       />
-      @if (searchTerm) {
+      @if (searchTerm()) {
         <button
           type="button"
           (click)="clearSearch()"
@@ -52,12 +51,12 @@
           } @empty {
             <div class="col-span-full flex flex-col items-center justify-center py-16 text-center bg-subtle rounded-xl">
               <p class="text-xl font-medium text-muted mb-2">
-                {{ searchTerm ? 'No books match your search' : 'No books available' }}
+                {{ searchTerm() ? 'No books match your search' : 'No books available' }}
               </p>
               <p class="text-muted">
-                {{ searchTerm ? 'Try different search terms or clear the search' : 'Check back later' }}
+                {{ searchTerm() ? 'Try different search terms or clear the search' : 'Check back later' }}
               </p>
-              @if (searchTerm) {
+              @if (searchTerm()) {
                 <button
                   type="button"
                   (click)="clearSearch()"
