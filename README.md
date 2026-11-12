@@ -65,7 +65,7 @@ We added a few plugin recommendations to simplify writing code during the worksh
 
 ## Angular CLI MCP server
 
-`tools/angular-mcp/index.ts` exposes the `generate_component` tool over stdio. It uses the installed Angular CLI
+`tools/angular-mcp/index.ts` exposes book catalog tools and `generate_component` over stdio. The generator uses the installed Angular CLI
 in this repository, independently of the directory from which the MCP client starts it. `@types/node` was already
 installed; the server adds `@modelcontextprotocol/sdk` and `zod`.
 
@@ -98,7 +98,8 @@ adjusting the absolute server path to your checkout:
   "mcpServers": {
     "bookmonkey-angular": {
       "command": "node",
-      "args": ["D:/Workshop/ki-software-engineer/dist/angular-mcp/index.js"]
+      "args": ["D:/Workshop/ki-software-engineer/dist/angular-mcp/index.js"],
+      "env": { "BOOKMONKEY_API_URL": "http://localhost:4730" }
     }
   }
 }
@@ -110,3 +111,30 @@ CLI failures return MCP tool errors with diagnostics; server startup errors go t
 
 Run `npm run test:angular-mcp` to build and verify tool discovery, actual CLI generation, path handling, validation,
 and conflict recovery through an SDK client in a temporary Angular workspace. These tests do not change application source.
+
+### Book catalog tools
+
+Start the Bookmonkey API separately with `npx bookmonkey-api`. The Angular dev server is not needed for MCP
+catalog access. By default, the MCP server uses `http://localhost:4730`, matching `app.config.ts`. Set the MCP
+process environment variable `BOOKMONKEY_API_URL` to use a different HTTP(S) base URL. This setting is independent
+of the Angular `API_BASE_URL` provider; configure both when switching backends. Restart the MCP connection after
+changing its environment or rebuilding the server.
+
+| Tool               | Arguments                                            | Result                                                                    |
+| ------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| `list_books`       | Optional `page` (default 1), `pageSize` (default 10) | A catalog page with book IDs                                              |
+| `search_books`     | Required `query`, optional `page`, `pageSize`        | Full-text search using the app's `q` API parameter                        |
+| `get_book_details` | Required `id` from a catalog/search result           | Book details including ISBN, author, publisher, pages, price and abstract |
+
+Page numbers start at 1; page sizes range from 1 to 100. Listing and search return `{ books, page, pageSize, total }`.
+`total` is `null` when the API does not supply a valid `X-Total-Count` header. Empty search results are successful
+responses with an empty `books` array. Results are available as both JSON text and MCP `structuredContent`.
+
+For example, call `search_books` with `{ "query": "Angular", "pageSize": 5 }`, then pass an exact returned ID
+to `get_book_details` with `{ "id": "<returned-id>" }`. A title or ISBN is search text, not necessarily a book ID.
+The tools query the API directly and do not navigate an open browser. They are read-only; they do not modify books.
+Backend failures, missing books, invalid responses, and a ten-second timeout return clear MCP tool errors.
+
+`npm run test:angular-mcp` also verifies these tools through a real stdio MCP connection against a local mock HTTP
+API, including pagination, URL encoding, empty results, validation, 404/500 errors, malformed data, timeout, offline
+behavior and recovery. No running Bookmonkey API is required for these tests.

@@ -284,10 +284,10 @@ Verified: all TypeScript projects passed, 20 Jasmine tests passed in Chrome Head
 
 Chromium verification: 48 of 50 application tests passed on the first run; the two paused-clock catalog navigation tests required synchronization with asynchronous lazy route imports. After updating the navigation helper, all nine catalog tests passed, including both cancellation scenarios. Firefox and WebKit were not run.
 
-### Local Angular CLI MCP tooling
+### Local BookMonkey and Angular CLI MCP tooling
 
 `tools/angular-mcp/index.ts` implements a separate Node.js stdio MCP server using `@modelcontextprotocol/sdk`
-and Zod. It is development tooling and is not imported into the browser SPA. `npm run build.angular-mcp` compiles
+and Zod. It exposes catalog reads and development tooling and is not imported into the browser SPA. `npm run build.angular-mcp` compiles
 its strict NodeNext TypeScript configuration to `dist/angular-mcp/index.js`. The package remains CommonJS, so
 `__dirname` identifies the server location; resolving two parent directories locates this checkout even when a
 client starts the server from another working directory.
@@ -309,3 +309,25 @@ integration test generated four components in its temporary workspace and verifi
 The production SPA build had a 355.11 kB initial bundle. Formatting of the changed source/configuration/documentation
 and `git -c core.whitespace=cr-at-eol diff --check` passed (the lockfile retains its existing CRLF line endings). The Inspector UI, individual editor connections, and SPA unit/browser suites were not run
 for this tooling-only change.
+
+The MCP server also registers read-only `list_books`, `search_books`, and `get_book_details` tools. They call the
+same `GET /books` (`_limit`, optional `_page` and `q`) and `GET /books/:id` endpoints as `BookApiClient`, using
+Node's built-in fetch. They do not depend on a running Angular frontend or control browser navigation. The backend
+base URL defaults to `http://localhost:4730` and can be set with `BOOKMONKEY_API_URL` in the MCP process environment,
+independently of the browser application's injected API origin. No additional dependencies were added.
+
+Zod validates tool arguments and API book payloads against the fields in `src/app/books/book.ts`. Listing and search
+return paginated JSON text and structured content with a nullable total from `X-Total-Count`; absent/invalid totals
+remain unknown rather than pretending that the returned page is the complete catalog. Details use an encoded ID.
+All book HTTP requests have a ten-second timeout. HTTP errors, missing books, transport failures and malformed data
+return tool errors without exposing backend response bodies. Tool errors do not disconnect the server. These tools
+advertise read-only, idempotent annotations; `generate_component` retains its existing file-generation behavior.
+
+The MCP integration suite now additionally uses a local mock HTTP API and the compiled stdio server to exercise
+catalog/search/details, defaults, paging, encoded query/ID values, empty results, unknown totals, argument validation,
+HTTP 404/500, invalid JSON/schema, timeout, offline behavior and subsequent recovery. This verifies the adapter contract;
+it does not establish behavior against a live Bookmonkey API or a particular editor connection.
+
+Verified for the book-tool extension on 2026-11-12: both `npm run test:angular-mcp` integration tests passed,
+`npm run typecheck` passed, and `npm run build` passed (355.11 kB initial bundle). Changed-file Prettier checks and
+`git diff --check` passed. No live backend, editor UI, or SPA unit/browser suites were exercised for this extension.
