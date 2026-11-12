@@ -283,3 +283,29 @@ Applied the Angular CLI MCP best-practice guide across all application component
 Verified: all TypeScript projects passed, 20 Jasmine tests passed in Chrome Headless, and the production build passed (355.08 kB initial bundle, with separate lazy feature chunks).
 
 Chromium verification: 48 of 50 application tests passed on the first run; the two paused-clock catalog navigation tests required synchronization with asynchronous lazy route imports. After updating the navigation helper, all nine catalog tests passed, including both cancellation scenarios. Firefox and WebKit were not run.
+
+### Local Angular CLI MCP tooling
+
+`tools/angular-mcp/index.ts` implements a separate Node.js stdio MCP server using `@modelcontextprotocol/sdk`
+and Zod. It is development tooling and is not imported into the browser SPA. `npm run build.angular-mcp` compiles
+its strict NodeNext TypeScript configuration to `dist/angular-mcp/index.js`. The package remains CommonJS, so
+`__dirname` identifies the server location; resolving two parent directories locates this checkout even when a
+client starts the server from another working directory.
+
+The `generate_component` tool accepts a required name and optional directory relative to `src/app`, also accepting
+an `src/app` prefix and Windows directory separators. It validates relative path segments and invokes the local
+Angular CLI entry point through `process.execPath` and `execFile` with separate arguments, without a shell or
+runtime package downloads. Generation uses standalone, flat, inline-template, inline-style, skip-tests, and
+non-interactive flags. CLI execution has a two-minute timeout and a bounded output buffer. CLI failures produce
+`isError` tool results; startup diagnostics use stderr, leaving stdout exclusively for MCP messages.
+
+`npm run test:angular-mcp` builds the server and exercises a real SDK client/server connection and local Angular
+CLI in an isolated temporary workspace. It checks tool discovery, generated files, directory normalization, invalid
+inputs, CLI conflicts, and continued availability after failures. It is separate from the SPA unit/browser suites.
+Client configuration and the Inspector command are documented in [README.md](README.md#angular-cli-mcp-server).
+
+Verified on 2026-11-12: `npm run test:angular-mcp`, `npm run typecheck`, and `npm run build` passed. The MCP
+integration test generated four components in its temporary workspace and verified validation and conflict handling.
+The production SPA build had a 355.11 kB initial bundle. Formatting of the changed source/configuration/documentation
+and `git -c core.whitespace=cr-at-eol diff --check` passed (the lockfile retains its existing CRLF line endings). The Inspector UI, individual editor connections, and SPA unit/browser suites were not run
+for this tooling-only change.
