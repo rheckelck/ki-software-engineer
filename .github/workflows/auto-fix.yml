@@ -48,6 +48,7 @@ jobs:
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY2 }}
+          model: "gpt-5.6-luna"
           prompt: |
             A CI build has failed. Analyze the errors and fix them automatically.
 
