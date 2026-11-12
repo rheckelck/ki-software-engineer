@@ -36,6 +36,14 @@ The implementation job has read-only GitHub permissions. The Green agent reads i
 
 After an `implemented` result on the expected branch with a clean working tree, the workflow exports the commits using `git format-patch --binary`. The JSON result and patch are uploaded as a `ci-se-green-issue-<number>` artifact. The workflow does not push commits, open a pull request, or run application verification. A successful agent run is not evidence of passing application tests. Labels applied by another workflow's `GITHUB_TOKEN` do not trigger this label-event workflow; a user or another eligible token must apply the label.
 
+## CI build and automatic repair
+
+`.github/workflows/build.yml` defines **CI Build** for every push, pull request, and manual dispatch. It uses Node.js 22, installs locked dependencies with `npm ci`, checks all three TypeScript projects with `npm run typecheck`, and runs the production build with `npm run build`. The workflow has read-only repository permissions. Unit and browser tests are not part of this build workflow.
+
+`.github/workflows/auto-fix.yml` listens for completed **CI Build** runs and starts its repair job only when the conclusion is `failure` and the source repository matches this repository. Successful, cancelled, and fork-originated builds do not start the repair job. Each failed run, including a rerun, can trigger repair; failures of Code Review or Auto-Fix itself do not trigger it. The listener must exist on the default branch before GitHub will trigger it.
+
+Auto-Fix checks out the failed run's exact head SHA, downloads the failed logs for that run attempt, and passes their local path to the Codex action. It uses Node.js 22 and the existing `OPENAI_API_KEY2` secret, then verifies with `npm run typecheck` and `npm run build`. Its existing final step only reports local changes; it does not publish commits or create a pull request. If repair fails, the notification job has `issues: write` permission to create an issue. A completed repair does not establish that unit or browser tests pass.
+
 ## Structure and responsibilities
 
 The application is organized around the `books` feature, a small `settings` page, and shared presentation/diagnostic utilities. It uses standalone components rather than an application `NgModule`.
@@ -226,7 +234,7 @@ Ratings assess the consequences of extending this code into a maintained applica
 - **Shared reporting policy:** expected request recovery stays in feature streams; the HTTP interceptor and root error handler use one console diagnostic sink. Expected 404s and cancellations do not create duplicate diagnostics; no automatic error toasts are shown.
 - **Test scaffold repaired:** Karma/Jasmine development dependencies and 13 focused unit tests are present. Application browser specs share mocks/navigation helpers; external-site examples are outside discovery.
 - **Style configuration aligned:** application and unit-test targets both load `src/styles.css` and `src/material-theme.scss`.
-- **Toolchain reproducibility — Moderate risk:** the manifest declares no Node runtime requirement or package-manager version. A lockfile records resolved dependencies, but no repository CI workflow was found to enforce install, compilation, or application checks.
+- **Toolchain reproducibility — Moderate risk:** the manifest declares no Node runtime requirement or package-manager version. A lockfile records resolved dependencies, and CI Build now enforces locked installation, TypeScript checks, and production compilation on pushes and pull requests. Unit and browser tests remain outside this CI workflow.
 
 There is little excessive indirection or duplicated application logic today. The strongest over-engineering signal is the unused dependency surface. The list component is a likely future concentration point for behavior, but it is not currently large enough to justify describing it as a god component. A global store, framework-independent domain layer, or micro-frontend split is not justified by the inspected requirements.
 
